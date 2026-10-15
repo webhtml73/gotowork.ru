@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поиск работы — вакансии по дням</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        .subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        main {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .vacancies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .card h3 {
+            margin: 0 0 0.8rem 0;
+            color: #2c3e50;
+        }
+        .salary {
+            color: #27ae60;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        .apply-btn {
+            width: 100%;
+            background-color: #2ecc71;
+        }
+        .apply-btn:hover {
+            background-color: #27ae60;
+        }
+
+        /* Модальное окно */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+        .payment-info {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            color: #856404;
+        }
+        .close-modal {
+            float: right;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Работа на день</h1>
+        <p class="subtitle">Ежедневные вакансии с оплатой в рублях</p>
+    </header>
+
+    <main>
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Поиск по профессии (например, «повар»)">
+            <button onclick="filterJobs()">Найти</button>
+        </div>
+
+        <div class="vacancies-grid" id="jobsContainer">
+            <!-- Вакансии будут выведены сюда через JS -->
+        </div>
+    </main>
+
+    <!-- Модальное окно заявки -->
+    <div class="modal-overlay" id="applyModal">
+        <div class="modal">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2>Откликнуться на вакансию</h2>
+            <div class="payment-info">
+                Оплата производится после смены. Сумма зависит от выбранной вакансии.
+            </div>
+            <form id="applicationForm">
+                <input type="hidden" id="selectedJob">
+                <div class="form-group">
+                    <label>Ваше имя</label>
+                    <input type="text" id="applicantName" required placeholder="Иван Иванов">
+                </div>
+                <div class="form-group">
+                    <label>Телефон</label>
+                    <input type="tel" id="applicantPhone" required placeholder="+7 (999) 000-00-00">
+                </div>
+                <button type="submit" style="width:100%">Отправить заявку</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2024 Работа на день. Все вакансии актуальны на момент публикации.
+    </footer>
+
+    <script>
+        const jobs = [
+            { title: "Школа", salary: "345 ₽ / день" },
+            { title: "Блогер", salary: "от 100 до 420 ₽ / день" },
+            { title: "Юрист", salary: "270 ₽ / день" },
+            { title: "Повар", salary: "400 ₽ / день" },
+            { title: "Курьер", salary: "320 ₽ / день" },
+            { title: "Администратор чата", salary: "280 ₽ / день" },
+            { title: "Промоутер", salary: "от 250 до 350 ₽ / день" },
+            { title: "Помощник на складе", salary: "300 ₽ / день" },
+            { title: "Уборщик помещений", salary: "220 ₽ / день" }
+        ];
+
+        let selectedJobTitle = '';
+
+        function renderJobs(list) {
+            const container = document.getElementById('jobsContainer');
+            container.innerHTML = '';
+            list.forEach(job => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h3>${job.title}</h3>
+                    <p class="salary">${job.salary}</p>
+                    <button class="apply-btn" onclick="openModal('${job.title}')">Откликнуться</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterJobs() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = jobs.filter(job =>
+                job.title.toLowerCase().includes(query)
+            );
+            renderJobs(filtered);
+        }
+
+        // Открытие модального окна
+        function openModal(jobTitle) {
+            selectedJobTitle = jobTitle;
+            document.getElementById('selectedJob').value = jobTitle;
+            document.getElementById('applyModal').style.display = 'flex';
+        }
+
+        // Закрытие модального окна
+        function closeModal() {
+            document.getElementById('applyModal').style.display = 'none';
+        }
+
+        // Обработка формы
+        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('applicantName').value;
+            const phone = document.getElementById('applicantPhone').value;
+            const job = document.getElementById('selectedJob').value;
+
+            // Имитация отправки заявки
+            alert(`Заявка принята!\n\nВакансия: ${job}\nИмя: ${name}\nТелефон: ${phone}\n\nМенеджер свяжется с вами для подтверждения смены и условий оплаты.`);
+            closeModal();
+            this.reset();
+        });
+
+        // Закрыть по клику вне окна
+        window.onclick = function(event) {
+            const modal = document.getElementById('applyModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+        // Показать все вакансии при загрузке
+        renderJobs(jobs);
+    </script>
+</body>
+</html>
